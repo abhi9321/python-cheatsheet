@@ -1,0 +1,649 @@
+
+SPARK
+-----
+
+
+
+map reduce - batch processing
+
+write sql on top of hadoop - hive
+machine learning on top of hadoop - mahout
+graph processing - pregel
+streaming data analysys - storm
+
+
+SPARK - 
+* General Unified Engine : it can do many things, no need to install diff tools (hive, mahout etc)
+* faster
+* ease of programming
+* micro batch (1 sec delay)
+* supports streaming
+
+
+***
+scheduling
+monitoring
+distributing
+***
+
+can use both RAM and HD
+supports python, scala, java, R . written abstraction in 2 version - so fatser in any language
+
+download spark
+- core spark
+- spark sql - integrated sql with hive. can read data from hive table. So huve can be used to store table
+- different modes to run spark - local mode (one  machine),on YARN, Messo, can run on Kubernetes
+
+- Spark has NO STORAGE. It is execution engine
+- if ur running on hadoop, datat will be on HDFS
+
+- all state is maintaned by ZOOKEEPER, used to maintian communication, high availablity.
+
+
+SPARK
+- in memory processing. It'll use RAM if available if not it uses HD
+
+
+IT has 
+DRIVER - MASTER, drives the program
+EXECUTOR - SLAVE , executes the program
+
+figure out num of executor - it depends on data - 128mb 1 block in hadoop - in spark how many executor depends on cluster configuration. u can process in single executor which has 3 gb ram
+
+
+more partition - means more executor - means faster - all these are related to resource management
+
+RDD - load data block to RAM
+
+automatically sprak divdes data file to blocks and that should com inside executor inside RAM
+
+spark context - connection to computing network 
+
+10 GB :
+- 10% for system call,
+- 30% for JVM garbage collection, 
+- communicaiton then ~54% is given to RDD
+
+
+Higher order function - passing function to other function
+
+RDD's are immutable
+
+spark will create a dag
+
+it is possible to cache RDD in RAM/HDD. Once all the action is over everything will be released
+
+sc._conf.getAll() 
+
+
+Job(collect) --> stages --> task
+
+
+Narrow transformation -> map, filter no -> data transfor b/w machine
+wide transformation -> reduce by key, join, groupby. groupbykey -> data transfor b/w machine
+
+STOP spark context at the end of program - deletes driver
+
+transformation - apply some function to data to create new rdd
+Action compute result based on rdd - 
+
+can create RDD on any python collections using sc.parrellize()
+
+
+Spark SQL - catalyst optimser for sql
+Cost Based Optimiser - sql optimizer
+
+
+
+spark.read.parquet()
+df.count
+df.describe()
+df.show()
+df.printSchema()
+df.select('columns2','columns2')
+
+
+from pyspark.sql.funciton import udf
+user defined function
+
+spark.read.format('package_name').load(emploee.xml)
+
+
+
+using SparkSession we can talk to hive
+
+DATA LAKE:
+	1. ingestion layer - where data comes in
+	2. cleaning - 
+	3. storage
+	4. consumption
+
+
+
+HADOOP:
+Name node - manages file system namespace
+Data node - manages storage attached to node
+hdfs exposes file system namespace and allow user data to be stored in file
+
+hadoop common - contains libraries and utilities needed by other hadoop moduels, contains jars and script needed to start hadoop
+
+hdfs - distributed file system that stores data on commodity h/w
+yarn - manages computing resources in cluster
+
+mapreduce - data processing
+
+daemon ;
+
+name node
+secondary name node
+resource manager
+node manager
+
+HDFC data integrity: 
+	by implementing checksum checking and elemenates the corrupt block of data
+	when client creates hdfs file, it computes cheksum of each block of the file and stores these checksums in separate hidden file in the same hdfs namespace
+	hen client retrives the file contents it verifies that the data it recieved from each data node matches the checksum stored in the associated checksum file. If not then client can opt to retrieve taht block from another data node that has a replica of that block
+
+FSimage and Editlog:
+	central data structure of hdfs. corruption of this files can cause the hdfs instance  to be non functional
+
+
+
+
+df = spark.read.format("csv").option("header","true").load("filename.csv")
+df.show()
+
+or 
+
+df = spark.read.csv('filename.csv', header=True)
+df.show()
+ 
+from pyspark.sql.functions import *
+
+# new col
+df2 = df.withColumn("clean_city", when(df.city.isNull(),'unknown').otherwise(df.city))
+
+df2.show()
+
+# where condition
+df2 = df2.filter(df2.JobTitle.isNotNull())
+
+df2 = df2.withColumn('clean_salary',df2.salary.substr(2,100).cast('float'))
+df2.show()
+
+mean = df2.groupby().avg('clean_salary').take(1)[0][0]
+print(mean)
+
+
+
+from pyspark.sql.functions import lit
+
+df2 = df2.withColumn('new_salary', when(df2.clean_salary.isNull(),lit(mean)).otherwise(df2.lean_salary))
+
+df2.show()
+
+
+
+lat = df2.select('latitude')
+
+lat.show()
+# remove null 
+lat = lat.filter(lat.latitude.isNotNull())
+
+lat.show()
+
+lat = lat.withColumn('lat2',lat.latitude.cast('float')).select('latitude')
+
+
+median = np.median(lat.collect())
+
+
+print(median)
+
+df2 = df2.withColumn('lati', when(df2.latitude.isNull(),lit(median)).otherwise(df2.latitude))
+
+
+
+
+df.dtypes
+ everything will be in string format
+
+ so we can build schema and make suitable type change
+
+ from pyspark.sql.types import *
+
+ schema= StructType([
+StructField('id', IntegerType(),
+StructField('name', StringType(),
+StructField('sal', FloatType(),
+)
+ ])
+
+df3 = spark.read.csv('fn.csv', header=True, schema=schema)
+df3.show()
+df3.dtypes
+
+
+df.na.drop()
+
+df = df.filter(df.job_title.isNotNull())
+
+df.dropDuplicates()
+
+
+# rename column
+df_renamed = df.withColumnRenamed('first_name','fn')
+
+
+
+-----
+compare 3rp data from theorem table fpr yesterday - if 3p 
+
+3p data billing data fom adjuster - suman - where is 3p data in adjuster table on placement level. aggreate up from lineitem level - yesterday
+
+
+lines delievy from theorem - adjuster/ theorem data * 100
+
+
+
+
+
+
+
+Mapreduce - disk based computation framework. for iterative job, mapreduce computes and writes intermediate data to HD and reads data from HD.
+to perform 
+	sql - hive
+	machine learning - mahout
+	streaming - storm
+	ie. we use diff framework to perfom those jobs
+- performs data in batch mode
+
+
+Spark - in memory computation framework.
+it can perforom and handle sql, streaming
+- performs data in micro batch mode/ near realtime
+- provides integration almost nosql and sql DBs
+
+
+spark - standalone, mesose , yarn(cluster manager) --- resource manager
+
+RDD - primary data structure of spark - logical  model accross distributed storage 
+Resilient - i can recreate RDD at any point of time during its execution of the cycle. Property to achive fault tolerance- creates lineage graph wich stores meta data of job.
+whenver there is job failure, it tries to execute job from beginiing
+Immutable - when u make tranformation, original RDD remains unaltered. Create acyclic graph.
+
+Distributed - capabity to execute data into distributed system
+
+Data Set - can process any kind of data (structured, un-structured, semi-structured)
+
+Lazy evaluation till v do action.
+
+
+Spark context - try to communicate with resource manager, tell spark how to access cluster
+
+
+RDD - collection of partitions
+partition - logical division of data
+
+
+lineage - set of steps (transformation) needs to be applied on diff RDD to create final RDD.Shows how RDD can be recreated. Logical plan, it tells how ti recreate
+
+rdd3.toDebugString
+
+DAG - acylic graph of stages, logical plan is submitted to catalyst optimiser. It generates the final plan and is given to dag scheduler and it creates physical plans. DAG is a physical plan. 
+It has  more info on stages, how execution is happens
+
+memory 
+storage 0 intebse - i and r X
+
+
+jobs submit to cluset - step - emr-5.30
+
+speak 2.3.
+
+m4.2xlarge 8 nodes, 100gb
+
+CrispLuigiTools/blob/master/src/start_zipcode
+
+aws emr describe-cluster
+
+aws emr list-instance 
+
+
+### CREATE PERMENAT TABLE
+rdd.write.format("parquet").saveAsTable(table_name)
+rdd.write.mode("overwrite").format("parquet").saveAsTable(table_name)
+
+rdd.filter(rdd.value.contains("/20"))
+
+unzip 
+
+
+zipcode
+
+
+inferchema=True -> to get data types of csv
+
+df
+df.head(10)
+---
+df.show()
+df.show(10)
+
+-----
+df.columns
+df.dtypes
+
+
+------
+# change names in pandas
+df.columns = ['a','b']
+
+# in pyspark
+df.toDF('a','b')
+
+# rename individual col - pandas
+	
+
+# in spark
+df.withColumnRenamed('old','new')
+-------
+
+drop columns
+df.drop('mpg', axis=1)
+
+df.drop('msg')
+
+--------
+
+FILTERNING - same in both
+df[df.col<10]
+
+# complex filtering
+df[(df.col1 < 20) & (df.col2 == 10)]
+---------
+
+# add col # div by 0 = infinte
+df['newCol'] = 25/col2
+
+# in spark # div by 0 = null
+df.withColumns('newCol', 25/col2)
+
+---------
+
+FILL NULLS
+df.fillna(0)
+
+--------
+
+# AGGREGATION
+df.groupby(['col1', 'col2']).agg({'col1': 'mean', 'col2': 'min' })
+
+---------
+
+STANDARD TRANSFORMATIONS
+
+# pandas
+import numpy as np
+
+df['newcol'] = np.log(df.col2)
+
+
+# spark
+import pyspark.sql.functions as f
+
+df.withCOlumns('newcol', f.log(df.col2))
+
+
+ROW CONDITIONAL STATEMENTS
+
+# pandas 
+
+df['cond'] = df.apply(lambda r: 1 if r.col>12 else 2 if 2.col<3 else 3 ,axis=1)
+
+# pyspark
+
+df.withColumns('cond', f.when(df.col > 12, 1).when(df.col < 3, 2).otherwise(3))
+
+
+
+# add 1to column
+#pandas
+df['disp1'] = df.disp.apply( lamba x: x+1 )
+
+#spark
+
+from pyspark.sql.functions as f
+from pyspark.sql.types import DoubleType
+
+fn = f.udf( lambda x:x+1, DoubleType) # mention return type
+
+df.withColumn('disp1', fn(df.disp))
+
+--------------
+
+# MERGE/JOIN DF
+
+left.merge(right , on='key')
+
+# diff key names
+left.merge(right, left_on='a', right_on='b')
+
+spark
+left.join(right, on='key')
+
+# join on diff key names
+left.join(right, left.a == right.b)
+-------------
+
+
+PIVOT TABLE
+# pandas
+pd.pivot_table(df, values='D', index=['A', 'B'], columns=['C'], aggfunc=np.sum)
+
+# pyspark
+df.groupby("A", "B").pivot("C").sum("D")
+
+
+-------------
+
+SUMMARY STATISTICS
+
+# pandas
+df.describe()
+
+
+# spark
+df.describe.show() # mean, min, max, stddiv
+
+to get percentile
+
+df.selectExpr("percentile_approx(col, array(.25, .5, .75)) as col").show()
+--------------
+
+HISTOGRAM
+
+#pandas
+df.hist()
+
+
+PySpark # take sample and do graph
+
+df.sample(False,0.1).toPandas().hist()
+
+----
+
+SQL
+
+spark
+df.createOrReplaceTempView('foo')
+df2= spark.sql('select * from foo')
+
+----
+SPark UI 4040 port
+access notebook
+
+do filtering if u want to before converison to pandas and not after
+
+df.toPandas().head()
+
+df.limit(5).toPandas()
+
+----
+PARQUET FORMAT - is a binary data storage format that,in combination with spark, enables fast queries by getting you just the data you need, getting it efficiently and keeping much of the work out of spark 
+
+cheap, fast, storage efficient
+	- columnar storage format
+	- binary format
+	- machine friendly
+	- compressed
+- stores data in disk as column oriented way - all col as simmilat types
+
+file 
+	- file meta data - schema
+	- row group
+	- col chunk
+	- page header
+	- page
+
+
+SPARK write file by partition in parquet format
+df.write.partitionBy("year","month","daycol").parquet(outputFile)
+
+
+ORC is also columnar format. it is indexed but does not handle nested data
+
+------
+infer schema **8
+
+spark.read.json("test.json").schema
+spark.read.json("test.json").printSchema
+
+StructType - > fixed length
+Maptype -> variable lenght
+
+customSchema = StructType([
+	StructField("time", TimestampType(),True),
+	StructField("host", StringType(),True),
+	StructField("event", MapType(StringType(), StringType()) )
+	])
+
+# MapType(key type, valuetype)
+spark.read.schema(customSchema).json("record.joan")
+
+**** spark has retry policy of 4
+
+
+spark sql( data frame) -> converted to query plan -> optimized query plan by applying seriers of transformation (catalyst)-> generate code -> execute on cluster (job of spark tungsten execution engine)
+
+
+
+logical query plan - scan, file, aggregate
+physical query plan - join, parquet file, sum
+
+
+
+
+
+UDF -> https://www.youtube.com/watch?v=gGn-pcqwxqc
+
+spark conf obj- specifies params for our spark application. can set application name. can set master uri mode 
+
+local[2] - num of cores
+
+from pyspark import SparkContext, SparkConf
+conf = SparkConf().setAppName("airports").setMaster("local[2]")
+sc = SparkContext(conf = conf)  # main entry point, connetion to spark clust, can be used create rdd.
+
+
+
+air = sc.textFile("path")
+
+
+rdda.saveAsTextFile("path")
+
+spark-submit path
+
+
+flatMap - produce multiple elements from each input element.
+
+
+persist rdd
+rdd.persist(StorageLevel.MEMORY_ONLY)
+
+------------------
+
+
+HADOOP -3.x
+
+HADOOP - open source , RDBMS - not open source
+WORM - write once Read many times 
+row level CRUD is not supported - Hence cannot replace RDBMS
+when data is small - RDBMS
+
+
+YARN - resourcce manager, schedules job. in Name node
+
+Node manager - skill set to work om manager (that skill set to node manager which helps to execute the task)
+
+
+config files in hadoop - 
+	hadoop-env.sh
+	core-site.xml  - where to run name node (which port )
+	hdfs-site.xml - replication factor, where is my name node, data node should be present
+	yar-site.xml and mapred-site.xml - type if clusters (mesos, local, distibuted ) are defined here
+	master - meta data (snap shot) of secondary node
+	slaves - data node details
+
+HDFS - all meta data should be kept in the memory as disk read is costly. Now RAM is volatile -> wht to do ensure meta data-> here create metadata in name node and at somme interval of time take backup of data to disk-> this is called fs image.
+edit log -> data from name node memory is keep on writing data to edit log in hdfs-site.xml
+
+----
+
+problem of having small files in hdfs ?
+	means too many blocks
+	means too many metadata, managin this is difficult, increase in cost seek
+	
+	so, archive it ->can create .har file (like zip)
+
+
+	hadoop archieve archive_name inpputpah o/ppath
+
+
+----
+# copy - put
+hadoop fs -Ddfs.blocksize=33443 -copyFromLocal /local
+
+# check block size
+hadoop fs -stat %o fn.txt
+
+---
+can multiple client write to same file in hdfs cincurently ? NO (WORM)
+
+---
+
+high availiabilty of name node - active and passive name node
+secondary name node was used in 1.x hadoop. it is like a snapshot of main name node. If main name node is failed, we have to start this secondary node. But for active/passive no human interventiion is needed.
+
+
+
+
+Accumulator
+collese
+
+broadcast
+
+partition
+
+
+
+
+
+
+
+
+
+
+
+
+
